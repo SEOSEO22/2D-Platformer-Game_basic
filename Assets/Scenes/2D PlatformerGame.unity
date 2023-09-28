@@ -2504,9 +2504,9 @@ GameObject:
   - component: {fileID: 1666342510}
   - component: {fileID: 1666342509}
   - component: {fileID: 1666342508}
-  - component: {fileID: 1666342507}
   - component: {fileID: 1666342511}
   - component: {fileID: 1666342512}
+  - component: {fileID: 1666342507}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -2660,6 +2660,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MaxSpeed: 4.5
+  jumpSpeed: 15
 --- !u!50 &1666342512
 Rigidbody2D:
   serializedVersion: 4
@@ -2675,7 +2676,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDrag: 2
   m_AngularDrag: 0
-  m_GravityScale: 1
+  m_GravityScale: 5
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
