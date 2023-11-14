@@ -4,17 +4,29 @@ using UnityEngine;
 
 public class PlayerMove : MonoBehaviour
 {
+    public GameManager gameManager;
+    public AudioClip audioJump;
+    public AudioClip audioAttack;
+    public AudioClip audioDamaged;
+    public AudioClip audioItem;
+    public AudioClip audioDie;
+    public AudioClip audioFinish;
+
+    public float MaxSpeed;
+    public float jumpSpeed;
     Rigidbody2D rigid;
     SpriteRenderer spriteRenderer;
     Animator anim;
-    public float MaxSpeed;
-    public float jumpSpeed;
+    CapsuleCollider2D capsuleCollider;
+    AudioSource audioSource;
 
     private void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         anim = GetComponent<Animator>();
+        capsuleCollider = GetComponent<CapsuleCollider2D>();
+        audioSource = GetComponent<AudioSource>();
     }
 
     private void Update()
@@ -23,6 +35,7 @@ public class PlayerMove : MonoBehaviour
         if (Input.GetButtonDown("Jump") && !anim.GetBool("isJumping")) {
             rigid.AddForce(Vector2.up * jumpSpeed, ForceMode2D.Impulse);
             anim.SetBool("isJumping", true);
+            PlaySound("Jump");
         }
 
         //Stop player moving
@@ -30,7 +43,7 @@ public class PlayerMove : MonoBehaviour
             rigid.velocity = new Vector2(0.5f * rigid.velocity.normalized.x, rigid.velocity.y);
 
         //Direction of sprite
-        if (Input.GetButtonDown("Horizontal"))
+        if (Input.GetButton("Horizontal"))
             spriteRenderer.flipX = Input.GetAxisRaw("Horizontal") == -1;
 
         //Changing animation parameter while player is walking
@@ -66,12 +79,60 @@ public class PlayerMove : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        //Interactive with Enemy
         if (collision.gameObject.CompareTag("Enemy")) {
-            OnDamaged(collision.transform.position);
+            if (rigid.velocity.y < 0 && transform.position.y > collision.transform.position.y)
+            {
+                //If Player steps on Enemy
+                OnAttack(collision.transform);
+            }
+            else
+                //When an enemy hits the player
+                OnDamaged(collision.transform.position);
         }
     }
 
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("Item"))
+        {
+            //Give Stage Point
+            bool isBronze = collision.gameObject.name.Contains("Bronze");
+            bool isSilver = collision.gameObject.name.Contains("Silver");
+            bool isGold = collision.gameObject.name.Contains("Gold");
+
+            PlaySound("Item");
+
+            if (isBronze) gameManager.stagePoint += 50;
+            else if (isSilver) gameManager.stagePoint += 100;
+            else if (isGold) gameManager.stagePoint += 300;
+
+            //Deactive Item
+            collision.gameObject.SetActive(false);
+        }
+        else if (collision.gameObject.CompareTag("Finish"))
+        {
+            PlaySound("Finish");
+            //next Stage
+            gameManager.nextStage();
+        }
+    }
+
+    void OnAttack(Transform enemy)
+    {
+        gameManager.stagePoint += 100;
+        PlaySound("Attack");
+
+        EnemyMove enemyMove = enemy.GetComponent<EnemyMove>();
+
+        enemyMove.OnDamaged();
+        rigid.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
+    }
+
     void OnDamaged(Vector2 targetPos) {
+        gameManager.healthDown();
+        PlaySound("Damaged");
+
         gameObject.layer = 11;
         int dirc = targetPos.x - this.transform.position.x > 0 ? -1 : 1;
 
@@ -88,5 +149,46 @@ public class PlayerMove : MonoBehaviour
     {
         gameObject.layer = 10;
         spriteRenderer.color = new Color(1, 1, 1, 1);
+    }
+
+    public void Ondie() {
+        spriteRenderer.color = new Color(1, 1, 1, 0.5f);
+        spriteRenderer.flipY = true;
+        capsuleCollider.enabled = false;
+        PlaySound("Die");
+        rigid.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
+    }
+
+    public void velocityZero()
+    {
+        this.rigid.velocity = Vector2.zero;
+    }
+
+    //Setting Sound
+    void PlaySound(string action)
+    {
+        switch (action)
+        {
+            case "Jump":
+                audioSource.clip = audioJump;
+                break;
+            case "Attack":
+                audioSource.clip = audioAttack;
+                break;
+            case "Damaged":
+                audioSource.clip = audioDamaged;
+                break;
+            case "Item":
+                audioSource.clip = audioItem;
+                break;
+            case "Die":
+                audioSource.clip = audioDie;
+                break;
+            case "Finish":
+                audioSource.clip = audioFinish;
+                break;
+        }
+
+        audioSource.Play();
     }
 }
